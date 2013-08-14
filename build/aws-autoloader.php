@@ -14,7 +14,10 @@
  * permissions and limitations under the License.
  */
 
-require_once __DIR__ . '/Symfony/Component/ClassLoader/UniversalClassLoader.php';
+// Use autoload created by Composer.
+// require_once dirname(__DIR__) . '/vendor/symfony/class-loader' . '/Symfony/Component/ClassLoader/UniversalClassLoader.php';
+
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 
 if (!defined('AWS_FILE_PREFIX')) {
     define('AWS_FILE_PREFIX', __DIR__);

@@ -38,7 +38,7 @@ sys.path.append(os.path.abspath('_ext/'))
 extensions = ['aws', 'rst2pdf.pdfbuilder']
 
 # index, rst2pdf, title, author
-pdf_documents = [('index', u'aws-sdk-php-guide', u'AWS SDK for PHP 2', u'Amazon Web Services')]
+pdf_documents = [('index', u'aws-sdk-php-guide', u'AWS SDK for PHP', u'Amazon Web Services')]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -61,7 +61,8 @@ copyright = u'2013, Amazon Web Services'
 # built documents.
 #
 # The short X.Y version.
-version = subprocess.check_output('git describe --abbrev=0 --tags', shell=True).strip()
+git_verson = subprocess.check_output('git describe --abbrev=0 --tags', shell=True).strip()
+version = os.getenv('VERSION', git_verson)
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -77,7 +78,7 @@ release = version
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ['_build']
+exclude_patterns = ['_build', 'vendor']
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 #default_role = None
@@ -252,9 +253,8 @@ texinfo_documents = [
 #texinfo_show_urls = 'footnote'
 
 # -- HTML theme settings ------------------------------------------------
-
 import guzzle_sphinx_theme
-pygments_style = 'guzzle_sphinx_theme.GuzzleStyle'
+extensions.append("guzzle_sphinx_theme")
 html_translator_class = 'guzzle_sphinx_theme.HTMLTranslator'
 html_theme_path = guzzle_sphinx_theme.html_theme_path()
 html_theme = 'guzzle_sphinx_theme'
@@ -265,5 +265,6 @@ html_theme_options = {
     "google_analytics_account": os.getenv('TRACKING', False),
     "project_nav_name": "AWS SDK for PHP",
     "github_user": "aws",
-    "github_repo": "aws-sdk-php"
+    "github_repo": "aws-sdk-php",
+    "base_url": "http://docs.aws.amazon.com/aws-sdk-php/v2/guide/"
 }

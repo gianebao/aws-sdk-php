@@ -36,8 +36,6 @@ instantiate the CloudFront client. The following is an example config file that 
         'services' => array(
             'default_settings' => array(
                 'params' => array(
-                    'key'    => '<aws access key>',
-                    'secret' => '<aws secret key>',
                     'region' => 'us-west-2'
                 )
             ),
@@ -129,4 +127,4 @@ The following is an example of how you could use the signed URL to construct a w
     </body>
     </html>
 
-.. include:: _snippets/incomplete.txt
+.. apiref:: CloudFront

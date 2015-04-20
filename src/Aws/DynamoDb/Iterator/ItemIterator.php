@@ -17,16 +17,40 @@
 namespace Aws\DynamoDb\Iterator;
 
 use Aws\Common\Exception\InvalidArgumentException;
-use Aws\DynamoDb\Enum\AttributeType;
 use Guzzle\Common\Collection;
 use Guzzle\Common\ToArrayInterface;
 
 /**
- * Converts items to a simple associative array form with type information removed. Also performs base64_decode on
- * values specified as binary. Each item is yielded as an array-accessible Collection object
+ * Converts items to a simple associative array form with type information
+ * removed. Also performs base64_decode on values specified as binary. Each item
+ * is yielded as an array-accessible Collection object.
+ *
+ * @deprecated The new DynamoDB document model, including the new types (L, M,
+ *             BOOL, NULL), is not supported by this class.
  */
 class ItemIterator extends \IteratorIterator implements \Countable, ToArrayInterface
 {
+    /**
+     * Collects items from the result of a DynamoDB operation and returns them as an ItemIterator.
+     *
+     * @param Collection $result  The result of a DynamoDB operation that potentially contains items
+     *                            (e.g., BatchGetItem, DeleteItem, GetItem, PutItem, Query, Scan, UpdateItem)
+     *
+     * @return self
+     */
+    public static function fromResult(Collection $result)
+    {
+        if (!($items = $result->get('Items'))) {
+            if ($item = $result->get('Item') ?: $result->get('Attributes')) {
+                $items = array($item);
+            } else {
+                $items = $result->getPath('Responses/*');
+            }
+        }
+
+        return new self(new \ArrayIterator($items ?: array()));
+    }
+
     /**
      * Ensures that the inner iterator is both Traversable and Countable
      *
@@ -41,6 +65,16 @@ class ItemIterator extends \IteratorIterator implements \Countable, ToArrayInter
         }
 
         parent::__construct($iterator);
+    }
+
+    /**
+     * Returns the first item in the iterator
+     */
+    public function getFirst()
+    {
+        $this->rewind();
+
+        return $this->current();
     }
 
     /**

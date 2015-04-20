@@ -17,6 +17,7 @@
 namespace Aws\Tests\Ec2;
 
 use Aws\Ec2\Ec2Client;
+use Aws\Common\Enum\ClientOptions;
 
 /**
  * @covers Aws\Ec2\Ec2Client
@@ -32,7 +33,7 @@ class Ec2ClientTest extends \Guzzle\Tests\GuzzleTestCase
         ));
 
         $this->assertEquals('https://ec2.ap-southeast-1.amazonaws.com', $client->getBaseUrl());
-        $this->assertInstanceOf('Aws\Common\Signature\SignatureV2', $client->getSignature());
+        $this->assertInstanceOf('Aws\Common\Signature\SignatureV4', $client->getSignature());
         $this->assertInstanceOf('Aws\Common\Credentials\Credentials', $client->getCredentials());
     }
 }

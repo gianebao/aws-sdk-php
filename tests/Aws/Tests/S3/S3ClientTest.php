@@ -16,9 +16,9 @@
 
 namespace Aws\Tests\S3;
 
+use Aws\Common\Enum\ClientOptions as Options;
 use Aws\Common\Credentials\Credentials;
 use Aws\S3\S3Client;
-use Aws\S3\Sync\UploadSyncBuilder;
 use Guzzle\Http\Message\Response;
 use Guzzle\Http\Url;
 use Guzzle\Http\Message\Request;
@@ -41,13 +41,17 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
             array('.bucket', false),
             array('bucket.', false),
             array('192.168.1.1', false),
+            array('1.1.1.100', false),
             array('test@42!@$5_', false),
             array('ab', false),
             array('12', false),
             array('bucket_name', false),
             array('bucket-name', true),
             array('bucket', true),
-            array('my.bucket.com', true)
+            array('my.bucket.com', true),
+            array('test-fooCaps', false),
+            array('w-w', true),
+            array('w------', false)
         );
     }
 
@@ -77,8 +81,11 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
      */
     public function testCreatesPresignedUrls()
     {
-        /** @var $client S3Client */
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = S3Client::factory(array(
+            'region' => 'us-east-1',
+            'key'    => 'foo',
+            'secret' => 'bar'
+        ));
         $request = $client->get('/foobar');
         $original = (string) $request;
         $url = $client->createPresignedUrl($request, 1342138769);
@@ -93,8 +100,11 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
      */
     public function testCreatesPresignedUrlsWithSpecialCharacters()
     {
-        /** @var $client S3Client */
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = S3Client::factory(array(
+            'region' => 'us-east-1',
+            'key'    => 'foo',
+            'secret' => 'bar'
+        ));
         $request = $client->get('/foobar test: abc/+%.a');
         $url = $client->createPresignedUrl($request, 1342138769);
         $this->assertContains('https://s3.amazonaws.com/foobar%20test%3A%20abc/%2B%25.a?AWSAccessKeyId=', $url);
@@ -103,7 +113,7 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
     public function testCreatesPresignedUrlsWithStrtotime()
     {
         /** @var $client S3Client */
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $url = Url::factory($client->createPresignedUrl($client->get('/foobar'), '10 minutes'));
         $this->assertTrue(time() < $url->getQuery()->get('Expires'));
     }
@@ -111,7 +121,7 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
     public function testCreatesPresignedUrlsWithDateTime()
     {
         /** @var $client S3Client */
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $url = Url::factory($client->createPresignedUrl($client->get('/foobar'), new \DateTime('+10 minutes')));
         $this->assertTrue(time() < $url->getQuery()->get('Expires'));
     }
@@ -119,7 +129,7 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
     public function testCreatesPresignedUrlsWithSessionToken()
     {
         /** @var $client S3Client */
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $client->setCredentials(new Credentials('foo', 'bar', 'baz'));
         $url = Url::factory($client->createPresignedUrl($client->get('/foobar'), '10 minutes'));
         $this->assertEquals('baz', $url->getQuery()->get('x-amz-security-token'));
@@ -131,14 +141,14 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
      */
     public function testValidatesRequestObjectWhenCreatingPreSignedUrl()
     {
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $client->createPresignedUrl(new Request('GET', 'http://foo.com'), '+10 minutes');
     }
 
     public function testDoesBucketExistReturnsCorrectBooleanValue()
     {
         /** @var $client S3Client */
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $this->setMockResponse($client, array(
             's3/head_success',
             's3/head_access_denied',
@@ -153,7 +163,7 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
     public function testDoesObjectExistReturnsCorrectBooleanValue()
     {
         /** @var $client S3Client */
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $this->setMockResponse($client, array(
             's3/head_success',
             's3/head_access_denied',
@@ -168,7 +178,7 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
     public function testDoesBucketPolicyExistReturnsCorrectBooleanValue()
     {
         /** @var $client S3Client */
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $this->setMockResponse($client, array(
             's3/get_bucket_policy_success',
             's3/get_bucket_policy_failure'
@@ -180,7 +190,7 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
 
     public function testClearsBucketHelperAndUsesSubResources()
     {
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $mock = $this->setMockResponse($client, array(
             's3/get_bucket_object_versions_page_2',
             's3/delete_multiple_objects'
@@ -198,7 +208,7 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
     public function testProperlyEncodesPrefixKeys()
     {
         $this->assertEquals('/foo/baz%20/bar%21', S3Client::encodeKey('/foo/baz /bar!'));
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $command = $client->getCommand('PutObject', array(
             'Key'    => 'foo/baz /bar!',
             'Bucket' => 'test',
@@ -236,7 +246,7 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
     public function testCanCreateObjectUrls($expires, array $args, $expectedUrl)
     {
         /** @var $client S3Client */
-        $client = $this->getServiceBuilder()->get('s3');
+        $client = $this->getServiceBuilder()->get('s3', true);
         $actualUrl = $client->getObjectUrl('foo', 'bar', $expires, $args);
         if (strpos($expectedUrl, '#^') === 0) {
             $this->assertRegExp($expectedUrl, $actualUrl);
@@ -300,7 +310,6 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
             )
         ));
         $this->assertInstanceOf('Guzzle\Service\Resource\Model', $result);
-        $this->assertEquals('PutObjectOutput', $result->getStructure()->getName());
         $this->assertCount(1, $history);
         $request = $history->getLastRequest();
         $this->assertEquals('PUT', $request->getMethod());
@@ -321,13 +330,15 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
             's3/complete_multipart_upload'
         ));
         $history = new HistoryPlugin();
+        $called = false;
         $client->addSubscriber($history);
         $result = $client->upload('test', 'key', fopen(__FILE__, 'r'), 'public-read', array(
             'min_part_size' => 4,
-            'params'        => array('Metadata' => array('Foo' => 'Bar'))
+            'params'        => array('Metadata' => array('Foo' => 'Bar')),
+            'before_upload' => function () use (&$called) {$called = true;},
         ));
+        $this->assertTrue($called);
         $this->assertInstanceOf('Guzzle\Service\Resource\Model', $result);
-        $this->assertEquals('CompleteMultipartUploadOutput', $result->getStructure()->getName());
         $this->assertCount(3, $history);
         $request = $history->getLastRequest();
         $this->assertEquals('POST', $request->getMethod());
@@ -416,5 +427,72 @@ class S3ClientTest extends \Guzzle\Tests\GuzzleTestCase
             'debug'       => true,
             'allow_resumable'   => true
         ));
+    }
+
+    /**
+     * @expectedException \Aws\Common\Exception\InvalidArgumentException
+     */
+    public function testEnsuresSigV4HasRegion()
+    {
+        $sig = $this->getMockBuilder('Aws\S3\S3SignatureV4')
+            ->disableOriginalConstructor()
+            ->getMock();
+        $s3 = S3Client::factory(array(Options::SIGNATURE => $sig));
+        $this->assertSame($sig, $s3->getSignature());
+    }
+
+    public function testCanForceS3Signature()
+    {
+        $sig = $this->getMockBuilder('Aws\S3\S3Signature')
+            ->disableOriginalConstructor()
+            ->getMock();
+        $s3 = S3Client::factory(array(
+            Options::SIGNATURE => $sig,
+            Options::REGION => 'cn-north-1'
+        ));
+        $this->assertSame($sig, $s3->getSignature());
+    }
+
+    public function testCanForceS3SignatureUsingString()
+    {
+        $s3 = S3Client::factory(array(
+            Options::SIGNATURE => 's3',
+            Options::REGION => 'cn-north-1'
+        ));
+        $this->assertInstanceOf('Aws\S3\S3Signature', $s3->getSignature());
+    }
+
+    public function testCanForceSigV4Signature()
+    {
+        $sig = $this->getMockBuilder('Aws\S3\S3SignatureV4')
+            ->disableOriginalConstructor()
+            ->getMock();
+        $s3 = S3Client::factory(array(
+            Options::SIGNATURE => $sig,
+            Options::REGION => 'us-east-1'
+        ));
+        $this->assertSame($sig, $s3->getSignature());
+    }
+
+    /**
+     * @expectedException \Aws\Common\Exception\InvalidArgumentException
+     * @expectedExceptionMessage A region must be specified when using signature version 4
+     */
+    public function testEnsuresRegionIsSetWhenUsingV4()
+    {
+        $s3 = S3Client::factory(array(Options::SIGNATURE => 'v4'));
+        $this->assertInstanceOf('Aws\S3\S3SignatureV4', $s3->getSignature());
+    }
+
+    public function testCanForceS3SignatureV4UsingString()
+    {
+        $s3 = S3Client::factory(array(Options::SIGNATURE => 'v4', 'region' => 'us-west-2'));
+        $this->assertInstanceOf('Aws\S3\S3SignatureV4', $s3->getSignature());
+    }
+
+    public function testUsesSigV4SignatureInSpecificRegions()
+    {
+        $s3 = S3Client::factory(array(Options::REGION => 'cn-north-1'));
+        $this->assertInstanceOf('Aws\S3\S3SignatureV4', $s3->getSignature());
     }
 }

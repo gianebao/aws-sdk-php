@@ -14,11 +14,23 @@
  * permissions and limitations under the License.
  */
 
-namespace Aws\Tests\Common\Signature;
+// Hack to override the time returned from the S3SignatureV4
+namespace Aws\Common\Signature
+{
+    function time()
+    {
+        return isset($_SERVER['override_v4_time'])
+            ? strtotime('December 5, 2013 00:00:00 UTC')
+            : \time();
+    }
+}
+
+namespace Aws\Tests\Common\Signature {
 
 use Aws\Common\Credentials\Credentials;
 use Aws\Common\Enum\DateFormat;
 use Aws\Common\Signature\SignatureV4;
+use Guzzle\Http\Message\EntityEnclosingRequest;
 use Guzzle\Http\Message\Request;
 use Guzzle\Http\Message\RequestFactory;
 use Guzzle\Parser\ParserRegistry;
@@ -34,6 +46,10 @@ class SignatureV4Test extends \Guzzle\Tests\GuzzleTestCase
      */
     private function getSignature()
     {
+        // Require the gmdate() hack for the namespace so that the mangled
+        // gmdate value is returned.
+        require_once __DIR__ . '/sigv4_hack.php';
+
         // Mock the timestamp function to use the test suite timestamp
         $signature = $this->getMock('Aws\Common\Signature\SignatureV4', array('getTimestamp', 'getDateTime'));
 
@@ -46,10 +62,10 @@ class SignatureV4Test extends \Guzzle\Tests\GuzzleTestCase
         $signature->expects($this->any())
             ->method('getDateTime')
             ->will($this->returnValueMap(array(
-            array(DateFormat::RFC1123, 'Mon, 09 Sep 2011 23:36:00 GMT'),
-            array(DateFormat::ISO8601, '20110909T233600Z'),
-            array(DateFormat::SHORT, '20110909')
-        )));
+                array(DateFormat::RFC1123, 'Mon, 09 Sep 2011 23:36:00 GMT'),
+                array(DateFormat::ISO8601, '20110909T233600Z'),
+                array(DateFormat::SHORT, '20110909')
+            )));
 
         return $signature;
     }
@@ -84,13 +100,16 @@ class SignatureV4Test extends \Guzzle\Tests\GuzzleTestCase
         $context = $request->getParams()->get('aws.signature');
 
         // Test that the canonical request is correct
-        $this->assertEquals(str_replace("\r", '', file_get_contents($group['creq'])), $context['canonical_request']);
+        $this->assertEquals(str_replace("\r", '', trim(file_get_contents($group['creq']))), $context['canonical_request']);
 
         // Test that the string to sign is correct
-        $this->assertEquals(str_replace("\r", '', file_get_contents($group['sts'])), $context['string_to_sign']);
+        $this->assertEquals(str_replace("\r", '', trim(file_get_contents($group['sts']))), $context['string_to_sign']);
 
         // Test that the authorization header is correct
-        $this->assertEquals(str_replace("\r", '', file_get_contents($group['authz'])), $request->getHeader('Authorization'));
+        $this->assertEquals(
+            str_replace("\r", '', trim(file_get_contents($group['authz']))),
+            (string) $request->getHeader('Authorization')
+        );
 
         $parser->setUtf8Support(false);
     }
@@ -102,6 +121,14 @@ class SignatureV4Test extends \Guzzle\Tests\GuzzleTestCase
     {
         // Gather a list of files sorted by name
         $files = glob(__DIR__ . DIRECTORY_SEPARATOR . 'aws4_testsuite' . DIRECTORY_SEPARATOR . '*');
+        sort($files);
+
+        // Skip the get-header-key-duplicate.* and get-header-value-order.authz.* test files for now;
+        // they are believed to be invalid tests. See https://github.com/aws/aws-sdk-php/issues/161
+        $files = array_filter($files, function($file) {
+            return ((strpos($file, 'get-header-key-duplicate.') === false) &&
+                    (strpos($file, 'get-header-value-order.'  ) === false));
+        });
         sort($files);
 
         $groups = array();
@@ -123,7 +150,8 @@ class SignatureV4Test extends \Guzzle\Tests\GuzzleTestCase
 
     /**
      * @covers Aws\Common\Signature\SignatureV4::signRequest
-     * @covers Aws\Common\Signature\SignatureV4::createCanonicalRequest
+     * @covers Aws\Common\Signature\SignatureV4::createSigningContext
+     * @covers Aws\Common\Signature\SignatureV4::getSigningKey
      */
     public function testSignsRequestsWithContentHashCorrectly()
     {
@@ -210,4 +238,139 @@ class SignatureV4Test extends \Guzzle\Tests\GuzzleTestCase
         $signature->signRequest($request, $credentials);
         $this->assertEquals(1, count($this->readAttribute($signature, 'hashCache')));
     }
+
+    public function queryStringProvider()
+    {
+        return array(
+
+            array(array(), ''),
+
+            array(array(
+                'X-Amz-Signature' => 'foo'
+            ), ''),
+
+            array(array(
+                'Foo' => '123',
+                'Bar' => '456'
+            ), 'Bar=456&Foo=123'),
+
+            array(array(
+                'Foo' => array('b', 'a'),
+                'a' => 'bc'
+            ), 'Foo=a&Foo=b&a=bc'),
+
+            array(array(
+                'Foo' => '',
+                'a' => 'b'
+            ), 'Foo=&a=b')
+        );
+    }
+
+    /**
+     * @covers Aws\Common\Signature\SignatureV4::getCanonicalizedQueryString
+     * @dataProvider queryStringProvider
+     */
+    public function testCreatesCanonicalizedQueryString($headers, $string)
+    {
+        // Make the method publicly callable
+        $method = new \ReflectionMethod('Aws\Common\Signature\SignatureV4', 'getCanonicalizedQueryString');
+        $method->setAccessible(true);
+
+        // Create a request and replace the headers with the test headers
+        $request = new Request('GET', 'http://www.example.com');
+        $request->getQuery()->replace($headers);
+
+        $signature = $this->getMockBuilder('Aws\Common\Signature\SignatureV4')
+            ->getMockForAbstractClass();
+
+        $this->assertEquals($string, $method->invoke($signature, $request));
+    }
+
+    private function getFixtures()
+    {
+        $request = new Request('GET', 'http://foo.com');
+        $credentials = new Credentials('foo', 'bar');
+        $signature = new SignatureV4('service', 'region');
+        $ref = new \ReflectionMethod($signature, 'convertExpires');
+        $ref->setAccessible(true);
+
+        return array($request, $credentials, $signature, $ref);
+    }
+
+    public function testCreatesPresignedDatesFromDateTime()
+    {
+        $_SERVER['override_v4_time'] = true;
+        list($request, $credentials, $signature, $ref) = $this->getFixtures();
+        $this->assertEquals(518400, $ref->invoke($signature, new \DateTime('December 11, 2013 00:00:00 UTC')));
+    }
+
+    public function testCreatesPresignedDatesFromUnixTimestamp()
+    {
+        $_SERVER['override_v4_time'] = true;
+        list($request, $credentials, $signature, $ref) = $this->getFixtures();
+        $this->assertEquals(518400, $ref->invoke($signature, 1386720000));
+    }
+
+    public function testCreatesPresignedDateFromStrtotime()
+    {
+        $_SERVER['override_v4_time'] = true;
+        list($request, $credentials, $signature, $ref) = $this->getFixtures();
+        $this->assertEquals(518400, $ref->invoke($signature, 'December 11, 2013 00:00:00 UTC'));
+    }
+
+    public function testAddsSecurityTokenIfPresent()
+    {
+        $_SERVER['override_v4_time'] = true;
+        list($request, $credentials, $signature) = $this->getFixtures();
+        $credentials->setSecurityToken('123');
+        $url = $signature->createPresignedUrl($request, $credentials, 1386720000);
+        $this->assertContains('X-Amz-Security-Token=123', $url);
+        $this->assertContains('X-Amz-Expires=518400', $url);
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testEnsuresSigV4DurationIsLessThanOneWeek()
+    {
+        $_SERVER['override_v4_time'] = true;
+        list($request, $credentials, $signature) = $this->getFixtures();
+        $signature->createPresignedUrl($request, $credentials, 'December 31, 2013 00:00:00 UTC');
+    }
+
+    public function testConvertsPostToGet()
+    {
+        $request = new EntityEnclosingRequest('POST', 'http://foo.com');
+        $request->setPostField('foo', 'bar');
+        $request->setPostField('baz', 'bam');
+        $request = SignatureV4::convertPostToGet($request);
+        $this->assertEquals('GET', $request->getMethod());
+        $this->assertEquals('bar', $request->getQuery()->get('foo'));
+        $this->assertEquals('bam', $request->getQuery()->get('baz'));
+    }
+
+    /**
+     * @expectedException \InvalidArgumentException
+     */
+    public function testEnsuresMethodIsPost()
+    {
+        $request = new EntityEnclosingRequest('PUT', 'http://foo.com');
+        SignatureV4::convertPostToGet($request);
+    }
+
+    public function testSignSpecificHeaders()
+    {
+        $sig = new SignatureV4('foo', 'bar');
+        $creds = new Credentials('a', 'b');
+        $req = new Request('PUT', 'http://foo.com', array(
+            'date' => 'today',
+            'host' => 'foo.com',
+            'x-amz-foo' => '123',
+            'content-md5' => 'bogus'
+        ));
+        $sig->signRequest($req, $creds);
+        $creq = $req->getParams()->getPath('aws.signature/canonical_request');
+        $this->assertContains('content-md5;date;host;x-amz-foo', $creq);
+    }
+}
 }

@@ -18,6 +18,7 @@ namespace Aws\DynamoDb\Integration;
 
 use Aws\DynamoDb\DynamoDbClient;
 use Aws\DynamoDb\Iterator\ItemIterator;
+use Aws\DynamoDb\Marshaler;
 
 /**
  * @group example
@@ -37,13 +38,13 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
         // Delete the errors table if it exists
         try {
             $client->deleteTable(array('TableName' => 'errors'));
-            $client->waitUntilTableNotExists(array('TableName' => 'errors'));
+            $client->waitUntil('TableNotExists', array('TableName' => 'errors'));
         } catch (\Exception $e) {}
 
         // Delete the Orders table if it exists
         try {
             $client->deleteTable(array('TableName' => 'Orders'));
-            $client->waitUntilTableNotExists(array('TableName' => 'Orders'));
+            $client->waitUntil('TableNotExists', array('TableName' => 'Orders'));
         } catch (\Exception $e) {}
     }
 
@@ -102,7 +103,7 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
         // @begin
 
         // Wait until the table is created and active
-        $client->waitUntilTableExists(array(
+        $client->waitUntil('TableExists', array(
             'TableName' => 'errors'
         ));
     }
@@ -129,7 +130,7 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
         ));
 
         // Wait until the table is active again after updating
-        $client->waitUntilTableExists(array(
+        $client->waitUntil('TableExists', array(
             'TableName' => 'errors'
         ));
     }
@@ -203,22 +204,22 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
     }
 
     /**
-     * Put an item in a table using the formatAttributes() client helper method
+     * Put an item in a table using the marshaler helper
      *
      * @depends testListTablesWithIterator
      * @example Aws\DynamoDb\DynamoDbClient::putItem 2012-08-10
-     * @example Aws\DynamoDb\DynamoDbClient::formatAttributes 2012-08-10
      */
     public function testAddItem()
     {
         $client = $this->client;
         // @begin
 
+        $m = new Marshaler();
         $time = time();
 
         $result = $client->putItem(array(
             'TableName' => 'errors',
-            'Item' => $client->formatAttributes(array(
+            'Item' => $m->marshalItem(array(
                 'id'      => 1201,
                 'time'    => $time,
                 'error'   => 'Executive overflow',
@@ -227,7 +228,6 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
             'ReturnConsumedCapacity' => 'TOTAL'
         ));
 
-        // The result will always contain ConsumedCapacityUnits
         echo $result->getPath('ConsumedCapacity/CapacityUnits') . "\n";
 
         // @end
@@ -386,7 +386,9 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
         $client = $this->client;
         // @begin
 
-        $iterator = new ItemIterator($client->getScanIterator(array('TableName' => 'errors')));
+        $iterator = new ItemIterator($client->getIterator('Scan', array(
+            'TableName' => 'errors'
+        )));
 
         // Each item will contain the attributes we added
         foreach ($iterator as $item) {
@@ -531,7 +533,7 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
         $this->assertEquals(count($keys), count($items));
 
         // Also check the iterator to make sure it works the same
-        $iterator = $client->getBatchGetItemIterator(array(
+        $iterator = $client->getIterator('BatchGetItem', array(
             'RequestItems' => array(
                 $tableName => array(
                     'Keys' => $keys
@@ -568,6 +570,41 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
     }
 
     /**
+     * Put a JSON document in a table using the marshaler helper
+     *
+     * @depends testWaitUntilTableExists
+     */
+    public function testMarshaler()
+    {
+        $client = $this->client;
+        // @begin
+
+        $m = new Marshaler();
+        $time = time();
+        $json = '{"id":1500,"time":'.$time.',"people":[{"name":"Jim","alive":tr'
+            . 'ue},{"name":"Bob","alive":false},{"name":"Amy","alive":true}]}';
+
+        $client->putItem(array(
+            'TableName' => 'errors',
+            'Item' => $m->marshalJson($json)
+        ));
+
+        $result = $client->getItem(array(
+            'TableName' => 'errors',
+            'Key' => $m->marshalItem(array(
+                'id'   => 1500,
+                'time' => $time
+            ))
+        ));
+
+        // @end
+        $this->assertEquals(
+            json_decode($json, true),
+            json_decode($m->unmarshalJson($result['Item']), true)
+        );
+    }
+
+    /**
      * Delete a table
      *
      * @depends testDeleteItem
@@ -582,7 +619,7 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
             'TableName' => 'errors'
         ));
 
-        $client->waitUntilTableNotExists(array(
+        $client->waitUntil('TableNotExists', array(
             'TableName' => 'errors'
         ));
     }
@@ -627,7 +664,7 @@ class DynamoDb_20120810_Test extends \Aws\Tests\IntegrationTestCase
             )
         ));
 
-        $client->waitUntilTableExists(array('TableName' => 'Orders'));
+        $client->waitUntil('TableExists', array('TableName' => 'Orders'));
     }
 
     /**

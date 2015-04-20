@@ -17,6 +17,8 @@
 namespace Aws\Tests\Sts;
 
 use Aws\Sts\StsClient;
+use Guzzle\Http\Message\Response;
+use Guzzle\Plugin\Mock\MockPlugin;
 use Guzzle\Service\Resource\Model;
 
 /**
@@ -29,13 +31,27 @@ class StsClientTest extends \Guzzle\Tests\GuzzleTestCase
         $client = StsClient::factory(array(
             'key'    => 'foo',
             'secret' => 'bar',
-            'region' => 'us-west-1'
         ));
 
         $this->assertInstanceOf('Aws\Common\Credentials\Credentials', $client->getCredentials());
         $this->assertEquals('https://sts.amazonaws.com', $client->getBaseUrl());
         $this->assertInstanceOf('Aws\Common\Signature\SignatureV4', $client->getSignature());
         $this->assertTrue($client->getDescription()->hasOperation('GetSessionToken'));
+
+        $client = StsClient::factory(array(
+            'key'    => 'foo',
+            'secret' => 'bar',
+            'region' => 'us-west-1'
+        ));
+        $this->assertEquals('https://sts.amazonaws.com', $client->getBaseUrl());
+
+        $client = StsClient::factory(array(
+            'key'      => 'foo',
+            'secret'   => 'bar',
+            'region'   => 'us-west-1',
+            'endpoint' => 'https://sts.us-west-1.amazonaws.com'
+        ));
+        $this->assertEquals('https://sts.us-west-1.amazonaws.com', $client->getBaseUrl());
     }
 
     /**
@@ -79,5 +95,24 @@ class StsClientTest extends \Guzzle\Tests\GuzzleTestCase
     {
         $client = StsClient::factory();
         $credentials = $client->createCredentials(new Model(array()));
+    }
+
+    public function testThatAssumeRoleWithWebIdentityRequestsDoNotGetSigned()
+    {
+        $client = StsClient::factory();
+
+        $mock = new MockPlugin();
+        $mock->addResponse(new Response(200));
+        $client->addSubscriber($mock);
+
+        $command = $client->getCommand('AssumeRoleWithWebIdentity', array(
+            'RoleArn'          => 'xxxxxxxxxxxxxxxxxxxxxx',
+            'RoleSessionName'  => 'xx',
+            'WebIdentityToken' => 'xxxx'
+        ));
+        $request = $command->prepare();
+        $command->execute();
+
+        $this->assertFalse($request->hasHeader('Authorization'));
     }
 }

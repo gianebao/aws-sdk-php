@@ -19,12 +19,13 @@ namespace Aws\Tests\Common\Client;
 use Aws\Common\Aws;
 use Aws\Common\Client\AbstractClient;
 use Aws\Common\Client\AwsClientInterface;
+use Aws\Common\Credentials\NullCredentials;
 use Aws\Common\Enum\Region;
 use Aws\Common\Signature\SignatureV4;
 use Aws\Common\Signature\SignatureListener;
 use Aws\Common\Credentials\Credentials;
+use Aws\DynamoDb\DynamoDbClient;
 use Guzzle\Common\Collection;
-use Guzzle\Plugin\Backoff\BackoffPlugin;
 use Guzzle\Service\Description\ServiceDescription;
 
 /**
@@ -47,17 +48,37 @@ class AbstractClientTest extends \Guzzle\Tests\GuzzleTestCase
         $this->assertSame($config, $client->getConfig());
 
         // Ensure a signature event dispatcher was added
-        $this->assertGreaterThan(0, array_filter(
+        $this->assertGreaterThan(0, count(array_filter(
             $client->getEventDispatcher()->getListeners('request.before_send'),
             function($e) {
                 return $e[0] instanceof SignatureListener;
             }
-        ));
+        )));
 
         // Ensure that the user agent string is correct
         $expectedUserAgent = 'aws-sdk-php2/' . Aws::VERSION;
         $actualUserAgent = $this->readAttribute($client, 'userAgent');
         $this->assertRegExp("@^{$expectedUserAgent}@", $actualUserAgent);
+    }
+
+    public function testConstructorAlwaysConfiguresSignatureListener()
+    {
+        $signature = new SignatureV4();
+        $credentials = new NullCredentials();
+        $config = new Collection();
+
+        $client = $this->getMockBuilder('Aws\Common\Client\AbstractClient')
+          ->setConstructorArgs(array($credentials, $signature, $config))
+          ->getMockForAbstractClass();
+
+        // Ensure a signature event dispatcher was added
+        $this->assertGreaterThan(0, count(array_filter(
+          $client->getEventDispatcher()->getListeners('request.before_send'),
+          function($e) {
+              return $e[0] instanceof SignatureListener;
+          }
+        )));
+
     }
 
     public function testUsesDefaultWaiterFactory()
@@ -138,20 +159,21 @@ class AbstractClientTest extends \Guzzle\Tests\GuzzleTestCase
         $client = $this->getServiceBuilder()->get('dynamodb', true);
         $client->getConfig()->set('scheme', 'https');
         foreach (array_keys($client->getRegions()) as $region) {
+            $suffix = (strpos($region, 'cn-') === 0) ? '.cn' : '';
             $client->setRegion($region);
-            $this->assertEquals("https://dynamodb.{$region}.amazonaws.com", (string) $client->getBaseUrl());
-            $this->assertEquals("https://dynamodb.{$region}.amazonaws.com", $client->getConfig('base_url'));
+            $this->assertEquals("https://dynamodb.{$region}.amazonaws.com{$suffix}", (string) $client->getBaseUrl());
+            $this->assertEquals("https://dynamodb.{$region}.amazonaws.com{$suffix}", $client->getConfig('base_url'));
             $this->assertEquals($region, $client->getRegion());
             $this->assertEquals($region, $this->readAttribute($client->getSignature(), 'regionName'));
         }
 
         /** @var $client AwsClientInterface */
-        $client = $this->getServiceBuilder()->get('sts', true);
+        $client = $this->getServiceBuilder()->get('iam', true);
         $client->getConfig()->set('scheme', 'https');
         foreach (array_keys($client->getRegions()) as $region) {
             $client->setRegion($region);
-            $this->assertEquals("https://sts.amazonaws.com", (string) $client->getBaseUrl());
-            $this->assertEquals("https://sts.amazonaws.com", $client->getConfig('base_url'));
+            $this->assertEquals("https://iam.amazonaws.com", (string) $client->getBaseUrl());
+            $this->assertEquals("https://iam.amazonaws.com", $client->getConfig('base_url'));
             $this->assertEquals(Region::US_EAST_1, $client->getRegion());
             $this->assertEquals(Region::US_EAST_1, $this->readAttribute($client->getSignature(), 'regionName'));
         }
@@ -191,53 +213,11 @@ class AbstractClientTest extends \Guzzle\Tests\GuzzleTestCase
         $client->getFooIterator(array('baz' => 'bar'));
     }
 
-    /**
-     * @expectedException \Aws\Common\Exception\InvalidArgumentException
-     * @expectedExceptionMessage No regions
-     */
-    public function testEnsuresRegionsAreSetWhenCreatingEndpoints()
-    {
-        AbstractClient::getEndpoint(ServiceDescription::factory(array()), 'foo', 'baz');
-    }
-
-    /**
-     * @expectedException \Aws\Common\Exception\InvalidArgumentException
-     * @expectedExceptionMessage foo is not a valid region
-     */
-    public function testEnsuresRegionIsValidWhenCreatingEndpoints()
-    {
-        AbstractClient::getEndpoint(ServiceDescription::factory(array(
-            'regions' => array(
-                'baz' => array()
-            )
-        )), 'foo', 'baz');
-    }
-
-    /**
-     * @expectedException \Aws\Common\Exception\InvalidArgumentException
-     * @expectedExceptionMessage http is not a valid URI scheme for
-     */
-    public function testEnsuresSchemeIsValidWhenCreatingEndpoints()
-    {
-        AbstractClient::getEndpoint(ServiceDescription::factory(array(
-            'regions' => array(
-                'baz' => array(
-                    'http' => false
-                )
-            )
-        )), 'baz', 'http');
-    }
-
     public function testCreatesEndpoints()
     {
-        $this->assertEquals('http://test.com', AbstractClient::getEndpoint(ServiceDescription::factory(array(
-            'regions' => array(
-                'baz' => array(
-                    'http' => true,
-                    'hostname' => 'test.com'
-                )
-            )
-        )), 'baz', 'http'));
+        $this->assertEquals('http://s3.amazonaws.com', AbstractClient::getEndpoint(ServiceDescription::factory(array(
+            'endpointPrefix' => 's3',
+        )), 'us-east-1', 'http'));
     }
 
     public function testChangeRegionAndCredentialsEvents()
@@ -271,5 +251,22 @@ class AbstractClientTest extends \Guzzle\Tests\GuzzleTestCase
     {
         $client = $this->getServiceBuilder()->get('dynamodb', true);
         $this->assertNotNull($client->getApiVersion());
+    }
+
+    /**
+     * @expectedException \Aws\Common\Exception\TransferException
+     */
+    public function testWrapsCurlExceptions()
+    {
+        $this->getServiceBuilder()->get('dynamodb', true);
+        $client = DynamoDbClient::factory(array(
+            'key'            => 'foo',
+            'secret'         => 'bar',
+            'region'         => 'us-west-1',
+            'client.backoff' => false,
+            'base_url'       => 'http://localhost:123',
+            'curl.options'   => array(CURLOPT_TIMEOUT_MS => 1)
+        ));
+        $client->listTables();
     }
 }

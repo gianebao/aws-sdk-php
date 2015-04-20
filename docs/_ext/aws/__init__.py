@@ -19,60 +19,10 @@ def setup(app):
     from sphinx.application import Sphinx
     if not isinstance(app, Sphinx): return
 
-    app.add_role('regions', regions_role)
     app.add_directive('service', ServiceIntro)
+    app.add_directive('apiref', ServiceApiRef)
+    app.add_directive('indexlinks', ServiceIndexLinks)
     app.add_directive('example', ExampleDirective)
-
-
-def regions_role(name, rawtext, text, lineno, inliner, options={}, content={}):
-    """Inserts a list of regions available to a service name
-
-    Returns 2 part tuple containing list of nodes to insert into the
-    document and a list of system messages.  Both are allowed to be
-    empty.
-
-    :param name: The role name used in the document.
-    :param rawtext: The entire markup snippet, with role.
-    :param text: The text marked with the role.
-    :param lineno: The line number where rawtext appears in the input.
-    :param inliner: The inliner instance that called us.
-    :param options: Directive options for customization.
-    :param content: The directive content for customization.
-    """
-    try:
-        service_name = str(text)
-        if not service_name:
-            raise ValueError
-        app = inliner.document.settings.env.app
-        node = make_regions_node(rawtext, app, str(service_name), options)
-        return [node], []
-    except ValueError:
-        msg = inliner.reporter.error(
-            'The service name "%s" is invalid; ' % text, line=lineno)
-        prb = inliner.problematic(rawtext, rawtext, msg)
-        return [prb], [msg]
-
-
-def get_regions(service_name):
-    """Get the regions for a service by name
-
-    Returns a list of regions
-
-    :param service_name: Retrieve regions for this service by name
-    """
-    return load_service_description(service_name)['regions'].keys()
-
-
-def make_regions_node(rawtext, app, service_name, options):
-    """Create a list of regions for a service name
-
-    :param rawtext:      Text being replaced with the list node.
-    :param app:          Sphinx application context
-    :param service_name: Service name
-    :param options:      Options dictionary passed to role func.
-    """
-    regions = get_regions(service_name)
-    return nodes.Text(", ".join(regions))
 
 
 class ServiceDescription():
@@ -111,7 +61,7 @@ class ServiceDescription():
         description = matches.groups(0)[0] % (version)
 
         # Strip the filename of the client and determine the description path
-        service_path = "/".join(client_path.split("/")[0:-1])
+        service_path = "/".join(client_path.split(os.sep)[0:-1])
         service_path += "/Resources/" + description + ".php"
 
         return service_path
@@ -121,7 +71,9 @@ class ServiceDescription():
 
         :param path: Path to a service description to load
         """
-        return self.__load_php(path)
+        description = self.__load_php(path)
+
+        return description
 
     def __load_php(self, path):
         """Load a PHP script that returns an array using JSON
@@ -129,7 +81,13 @@ class ServiceDescription():
         :param path: Path to the script to load
         """
         path = os.path.abspath(path)
-        sh = 'php -r \'$c = include "' + path + '"; echo json_encode($c);\''
+
+        # Make command to each environment Linux/Mac and Windows
+        if os.name == 'nt':
+            sh = 'php -r \"$c = include \'' + path + '\'; echo json_encode($c);\"'
+        else:
+            sh = 'php -r \'$c = include "' + path + '"; echo json_encode($c);\''
+
         loaded = subprocess.check_output(sh, shell=True)
         return json.loads(loaded)
 
@@ -144,9 +102,9 @@ def load_service_description(name):
     return description_cache[name]
 
 
-class ServiceIntro(Directive):
+class ServiceDescriptionDirective(Directive):
     """
-    Creates a service introduction to inject into a document
+    Base class for directives that use information from service descriptions
     """
 
     required_arguments = 1
@@ -159,8 +117,9 @@ class ServiceIntro(Directive):
         else:
             api_version = ""
         service_name = self.arguments[0].strip()
-        d = load_service_description(service_name)
-        rawtext = self.generate_rst(d, api_version)
+        service_description = load_service_description(service_name)
+
+        rawtext = self.generate_rst(service_description, api_version)
         tab_width = 4
         include_lines = statemachine.string2lines(
             rawtext, tab_width, convert_whitespace=1)
@@ -168,16 +127,63 @@ class ServiceIntro(Directive):
             include_lines, os.path.abspath(__file__))
         return []
 
-    def get_doc_link(self, name, namespace):
-        """Determine the documentation link for an endpoint"""
-        if name == "sts":
+    def get_service_doc_url(self, namespace):
+        """Determine the documentation link for a service"""
+        namespace = namespace.lower()
+        if namespace == "sts":
             return "http://aws.amazon.com/documentation/iam/"
         else:
-            return "http://aws.amazon.com/documentation/" + namespace.lower()
+            return "http://aws.amazon.com/documentation/" + namespace
+
+    def get_api_ref_url(self, namespace):
+        """Determine the PHP API documentation link for a service"""
+        return "http://docs.aws.amazon.com/aws-sdk-php/v2/api/class-Aws." + namespace + "." + namespace + "Client.html"
 
     def get_locator_name(self, name):
         """Determine the service locator name for an endpoint"""
         return name
+
+
+class ServiceIntro(ServiceDescriptionDirective):
+    """
+    Creates a service introduction to inject into a document
+    """
+
+    def generate_rst(self, d, api_version):
+        rawtext = ""
+        scalar = {}
+
+        # Grab all of the simple strings from the description
+        for key in d.description:
+            if isinstance(d[key], str) or isinstance(d[key], unicode):
+                scalar[key] = d[key]
+                # Add substitutions for top-level data in a service description
+                rawtext += ".. |%s| replace:: %s\n\n" % (key, scalar[key])
+
+        # Determine the doc URL
+        docs = self.get_service_doc_url(d["namespace"])
+
+        # Determine the "namespace" used for linking to API docs
+        if api_version:
+            apiVersionSuffix = "_" + api_version.replace("-", "_")
+        else:
+            apiVersionSuffix = ""
+
+        env = Environment(loader=PackageLoader('aws', 'templates'))
+        template = env.get_template("client_intro")
+        rawtext += template.render(
+            scalar,
+            doc_url=docs,
+            specifiedApiVersion=api_version,
+            apiVersionSuffix=apiVersionSuffix)
+
+        return rawtext
+
+
+class ServiceApiRef(ServiceDescriptionDirective):
+    """
+    Inserts a formatted PHPUnit example into the source
+    """
 
     def generate_rst(self, d, api_version):
         rawtext = ""
@@ -199,10 +205,6 @@ class ServiceIntro(Directive):
         # Set the ordered dict of operations on the description
         d.description['operations'] = operations
 
-        # Determine the service locator name and doc URL
-        locator_name = self.get_locator_name(d["namespace"])
-        docs = self.get_doc_link(locator_name, d["namespace"])
-
         # Determine the "namespace" used for linking to API docs
         if api_version:
             apiVersionSuffix = "_" + api_version.replace("-", "_")
@@ -210,15 +212,30 @@ class ServiceIntro(Directive):
             apiVersionSuffix = ""
 
         env = Environment(loader=PackageLoader('aws', 'templates'))
-        template = env.get_template("client_intro")
+        template = env.get_template("api_reference")
         rawtext += template.render(
             scalar,
             description=d.description,
-            regions=get_regions(d["namespace"]),
-            locator_name=locator_name,
-            doc_url=docs,
-            specifiedApiVersion=api_version,
             apiVersionSuffix=apiVersionSuffix)
+
+        return rawtext
+
+
+class ServiceIndexLinks(ServiceDescriptionDirective):
+    """
+    Inserts a formatted PHPUnit example into the source
+    """
+
+    def generate_rst(self, service_description, api_version):
+        d = service_description.description
+
+        service_name = d["serviceFullName"]
+        if "serviceAbbreviation" in d:
+            service_name = d["serviceAbbreviation"]
+
+        rawtext = "* :doc:`Using the " + service_name + " PHP client <service-" + d["namespace"].lower() + ">`\n";
+        rawtext += "* `PHP API reference <" + self.get_api_ref_url(d["namespace"]) + ">`_\n";
+        #rawtext += "* `General service documentation for " + service_name + " <" + self.get_service_doc_url(d["namespace"]) + ">`_\n";
 
         return rawtext
 

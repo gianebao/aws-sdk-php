@@ -1,12 +1,13 @@
+============
 Installation
 ============
 
 Installing via Composer
 -----------------------
 
-Using `Composer <http://getcomposer.org>`_ is the recommended way to install the AWS SDK for PHP 2. Composer is a
+Using `Composer <http://getcomposer.org>`_ is the recommended way to install the AWS SDK for PHP. Composer is a
 dependency management tool for PHP that allows you to declare the dependencies your project needs and installs them into
-your project. In order to use the AWS SDK for PHP 2 through Composer, you must do the following:
+your project. In order to use the SDK with Composer, you must do the following:
 
 #. Add ``"aws/aws-sdk-php"`` as a dependency in your project's ``composer.json`` file.
 
@@ -18,7 +19,7 @@ your project. In order to use the AWS SDK for PHP 2 through Composer, you must d
            }
        }
 
-   Consider tightening your dependencies to a known version (e.g., ``2.3.*``).
+   Consider tightening your dependencies to a known version (e.g., ``~2.7.0``).
 
 #. Download and install Composer.
 
@@ -55,6 +56,11 @@ requirement for the SDK to ``dev-master``.
       }
    }
 
+If you are deploying your application to `AWS Elastic Beanstalk
+<http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_PHP_eb.html>`_, and you have a ``composer.json``
+file in the root of your package, then Elastic Beanstalk will automatically perform a Composer ``install`` when you
+deploy your application.
+
 Installing via Phar
 -------------------
 
@@ -68,13 +74,10 @@ with the phar file are the following required and suggested libraries:
 -  `Monolog <https://github.com/seldaek/monolog>`_ and `Psr\\Log <https://github.com/php-fig/log>`_ for logging
 -  `Doctrine <https://github.com/doctrine/common>`_ for caching
 
-You can `download the packaged Phar <http://pear.amazonwebservices.com/get/aws.phar>`_ and simply include it in your
-scripts to get started::
+You can download specific versions of a packaged Phar from https://github.com/aws/aws-sdk-php/releases
+and simply include it in your scripts to get started::
 
     require '/path/to/aws.phar';
-
-If you have `phing <http://www.phing.info/>`_ installed, you can clone the SDK and build a phar file yourself using the
-*"phar"* task.
 
 .. note::
 
@@ -99,11 +102,12 @@ following required and suggested libraries:
 
 Using the zip file is great if you:
 
-1. Prefer not to or cannot use package managers like Composer and PEAR.
+1. Prefer not to or cannot use Composer.
 2. Cannot use phar files due to environment limitations.
 3. Want to use only specific files from the SDK.
 
-To get started, you must `download the zip file <http://pear.amazonwebservices.com/get/aws.zip>`_, unzip it into your
+To get started, you must download a specific version of the zip file from
+https://github.com/aws/aws-sdk-php/releases, unzip it into your
 project to a location of your choosing, and include the autoloader::
 
     require '/path/to/aws-autoloader.php';
@@ -112,31 +116,3 @@ Alternatively, you can write your own autoloader or use an existing one from you
 
 If you have `phing <http://www.phing.info/>`_ installed, you can clone the SDK and build a zip file yourself using the
 *"zip"* task.
-
-Installing via PEAR
-~~~~~~~~~~~~~~~~~~~
-
-`PEAR <http://pear.php.net/>`_ packages are easy to install, and are available in your PHP environment path so that they
-are accessible to any PHP project. PEAR packages are not specific to your project, but rather to the machine they're
-installed on.
-
-From the command-line, you can install the SDK with PEAR as follows (this might need to be run as ``sudo``):
-
-.. code-block:: sh
-
-    pear config-set auto_discover 1
-    pear channel-discover pear.amazonwebservices.com
-    pear install aws/sdk
-
-Alternatively, you can combine all three of the preceding statements into one by doing the following:
-
-.. code-block:: sh
-
-    pear -D auto_discover=1 install pear.amazonwebservices.com/sdk
-
-Once the SDK has been installed via PEAR, you can include the `phar <http://php.net/manual/en/book.phar.php>`_ into
-your project with:
-
-.. code-block:: php
-
-    require 'AWSSDKforPHP/aws.phar';

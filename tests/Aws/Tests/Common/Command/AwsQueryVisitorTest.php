@@ -153,6 +153,10 @@ class AwsQueryVisitorTest extends \Guzzle\Tests\GuzzleTestCase
             'type' => 'object',
             'location' => 'aws.query',
             'sentAs' => 'Attribute',
+            'data' => array(
+                'keyName'   => 'Name',
+                'valueName' => 'Value'
+            ),
             'additionalProperties' => array(
                 'type' => 'string',
             ),
@@ -178,6 +182,10 @@ class AwsQueryVisitorTest extends \Guzzle\Tests\GuzzleTestCase
             'type' => 'object',
             'location' => 'aws.query',
             'sentAs' => 'Attribute',
+            'data' => array(
+                'keyName'   => 'Name',
+                'valueName' => 'Value'
+            ),
             'additionalProperties' => array(
                 'type'       => 'object',
                 'properties' => array(
@@ -212,6 +220,68 @@ class AwsQueryVisitorTest extends \Guzzle\Tests\GuzzleTestCase
             'Attribute.2.Value.Baz' => 'baz2',
         );
 
+        // Use Case 4
+        $data[3] = array();
+        // Parameter
+        $data[3][0] = new Parameter(array(
+            'name' => 'Attributes',
+            'type' => 'object',
+            'location' => 'aws.query',
+            'sentAs' => 'Attribute.entry',
+            'additionalProperties' => array(
+                'type' => 'string',
+            ),
+        ));
+        // Value
+        $data[3][1] = array(
+            'Foo' => 10,
+            'Bar' => 20,
+        );
+        // Result
+        $data[3][2] = array(
+            'Attribute.entry.1.key'  => 'Foo',
+            'Attribute.entry.1.value' => 10,
+            'Attribute.entry.2.key'  => 'Bar',
+            'Attribute.entry.2.value' => 20,
+        );
+
         return $data;
+    }
+
+    public function testSerializesEmptyLists()
+    {
+        $operation = new Operation(array('name' => 'UpdateStack'));
+        $command = new OperationCommand(array(), $operation);
+        $request = new EntityEnclosingRequest('POST', 'http://foo.com');
+        $visitor = new AwsQueryVisitor();
+        $visitor->visit($command, $request, new Parameter(array(
+            'name' => 'foo',
+            'type' => 'object',
+            'location' => 'aws.query',
+            'properties' => array(
+                'test' => array(
+                    'type' => 'array'
+                ),
+                'bar' => array(
+                    'type' => 'object',
+                    'properties' => array(
+                        'bam' => array(
+                            'type' => 'array'
+                        ),
+                        'boo' => array(
+                            'type' => 'string'
+                        )
+                    )
+                )
+            )
+        )), array(
+            'test' => array(),
+            'bar' => array(
+                'bam' => array(),
+                'boo' => 'hi'
+            )
+        ));
+        $fields = $request->getPostFields();
+        $this->assertEquals('foo.test=&foo.bar.bam=&foo.bar.boo=hi', (string) $fields);
     }
 }

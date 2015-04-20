@@ -64,6 +64,11 @@ return array (
             'https' => true,
             'hostname' => 'sns.sa-east-1.amazonaws.com',
         ),
+        'cn-north-1' => array(
+            'http' => true,
+            'https' => true,
+            'hostname' => 'sns.cn-north-1.amazonaws.com.cn',
+        ),
         'us-gov-west-1' => array(
             'http' => true,
             'https' => true,
@@ -193,6 +198,123 @@ return array (
                 ),
             ),
         ),
+        'CreatePlatformApplication' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'CreatePlatformApplicationResponse',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'CreatePlatformApplication',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'Name' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+                'Platform' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+                'Attributes' => array(
+                    'required' => true,
+                    'type' => 'object',
+                    'location' => 'aws.query',
+                    'sentAs' => 'Attributes.entry',
+                    'additionalProperties' => array(
+                        'type' => 'string',
+                        'data' => array(
+                            'shape_name' => 'String',
+                        ),
+                    ),
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+            ),
+        ),
+        'CreatePlatformEndpoint' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'CreateEndpointResponse',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'CreatePlatformEndpoint',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'PlatformApplicationArn' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+                'Token' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+                'CustomUserData' => array(
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+                'Attributes' => array(
+                    'type' => 'object',
+                    'location' => 'aws.query',
+                    'sentAs' => 'Attributes.entry',
+                    'additionalProperties' => array(
+                        'type' => 'string',
+                        'data' => array(
+                            'shape_name' => 'String',
+                        ),
+                    ),
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the requested resource does not exist.',
+                    'class' => 'NotFoundException',
+                ),
+            ),
+        ),
         'CreateTopic' => array(
             'httpMethod' => 'POST',
             'uri' => '/',
@@ -235,6 +357,82 @@ return array (
                 ),
             ),
         ),
+        'DeleteEndpoint' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'EmptyOutput',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'DeleteEndpoint',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'EndpointArn' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+            ),
+        ),
+        'DeletePlatformApplication' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'EmptyOutput',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'DeletePlatformApplication',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'PlatformApplicationArn' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+            ),
+        ),
         'DeleteTopic' => array(
             'httpMethod' => 'POST',
             'uri' => '/',
@@ -253,6 +451,90 @@ return array (
                     'default' => '2010-03-31',
                 ),
                 'TopicArn' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the requested resource does not exist.',
+                    'class' => 'NotFoundException',
+                ),
+            ),
+        ),
+        'GetEndpointAttributes' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'GetEndpointAttributesResponse',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'GetEndpointAttributes',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'EndpointArn' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the requested resource does not exist.',
+                    'class' => 'NotFoundException',
+                ),
+            ),
+        ),
+        'GetPlatformApplicationAttributes' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'GetPlatformApplicationAttributesResponse',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'GetPlatformApplicationAttributes',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'PlatformApplicationArn' => array(
                     'required' => true,
                     'type' => 'string',
                     'location' => 'aws.query',
@@ -354,6 +636,89 @@ return array (
                 array(
                     'reason' => 'Indicates that the requested resource does not exist.',
                     'class' => 'NotFoundException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+            ),
+        ),
+        'ListEndpointsByPlatformApplication' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'ListEndpointsByPlatformApplicationResponse',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'ListEndpointsByPlatformApplication',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'PlatformApplicationArn' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+                'NextToken' => array(
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the requested resource does not exist.',
+                    'class' => 'NotFoundException',
+                ),
+            ),
+        ),
+        'ListPlatformApplications' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'ListPlatformApplicationsResponse',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'ListPlatformApplications',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'NextToken' => array(
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
                 ),
                 array(
                     'reason' => 'Indicates that the user has been denied access to the requested resource.',
@@ -499,7 +864,10 @@ return array (
                     'default' => '2010-03-31',
                 ),
                 'TopicArn' => array(
-                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+                'TargetArn' => array(
                     'type' => 'string',
                     'location' => 'aws.query',
                 ),
@@ -516,11 +884,42 @@ return array (
                     'type' => 'string',
                     'location' => 'aws.query',
                 ),
+                'MessageAttributes' => array(
+                    'type' => 'object',
+                    'location' => 'aws.query',
+                    'sentAs' => 'MessageAttributes.entry',
+                    'data' => array(
+                        'keyName' => 'Name',
+                        'valueName' => 'Value',
+                    ),
+                    'additionalProperties' => array(
+                        'type' => 'object',
+                        'data' => array(
+                            'shape_name' => 'String',
+                        ),
+                        'properties' => array(
+                            'DataType' => array(
+                                'required' => true,
+                                'type' => 'string',
+                            ),
+                            'StringValue' => array(
+                                'type' => 'string',
+                            ),
+                            'BinaryValue' => array(
+                                'type' => 'string',
+                            ),
+                        ),
+                    ),
+                ),
             ),
             'errorResponses' => array(
                 array(
                     'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
                     'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterValueException',
                 ),
                 array(
                     'reason' => 'Indicates an internal service error.',
@@ -529,6 +928,14 @@ return array (
                 array(
                     'reason' => 'Indicates that the requested resource does not exist.',
                     'class' => 'NotFoundException',
+                ),
+                array(
+                    'reason' => 'Exception error indicating endpoint disabled.',
+                    'class' => 'EndpointDisabledException',
+                ),
+                array(
+                    'reason' => 'Exception error indicating platform application disabled.',
+                    'class' => 'PlatformApplicationDisabledException',
                 ),
                 array(
                     'reason' => 'Indicates that the user has been denied access to the requested resource.',
@@ -562,6 +969,114 @@ return array (
                     'required' => true,
                     'type' => 'string',
                     'location' => 'aws.query',
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the requested resource does not exist.',
+                    'class' => 'NotFoundException',
+                ),
+            ),
+        ),
+        'SetEndpointAttributes' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'EmptyOutput',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'SetEndpointAttributes',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'EndpointArn' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+                'Attributes' => array(
+                    'required' => true,
+                    'type' => 'object',
+                    'location' => 'aws.query',
+                    'sentAs' => 'Attributes.entry',
+                    'additionalProperties' => array(
+                        'type' => 'string',
+                        'data' => array(
+                            'shape_name' => 'String',
+                        ),
+                    ),
+                ),
+            ),
+            'errorResponses' => array(
+                array(
+                    'reason' => 'Indicates that a request parameter does not comply with the associated constraints.',
+                    'class' => 'InvalidParameterException',
+                ),
+                array(
+                    'reason' => 'Indicates an internal service error.',
+                    'class' => 'InternalErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the user has been denied access to the requested resource.',
+                    'class' => 'AuthorizationErrorException',
+                ),
+                array(
+                    'reason' => 'Indicates that the requested resource does not exist.',
+                    'class' => 'NotFoundException',
+                ),
+            ),
+        ),
+        'SetPlatformApplicationAttributes' => array(
+            'httpMethod' => 'POST',
+            'uri' => '/',
+            'class' => 'Aws\\Common\\Command\\QueryCommand',
+            'responseClass' => 'EmptyOutput',
+            'responseType' => 'model',
+            'parameters' => array(
+                'Action' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => 'SetPlatformApplicationAttributes',
+                ),
+                'Version' => array(
+                    'static' => true,
+                    'location' => 'aws.query',
+                    'default' => '2010-03-31',
+                ),
+                'PlatformApplicationArn' => array(
+                    'required' => true,
+                    'type' => 'string',
+                    'location' => 'aws.query',
+                ),
+                'Attributes' => array(
+                    'required' => true,
+                    'type' => 'object',
+                    'location' => 'aws.query',
+                    'sentAs' => 'Attributes.entry',
+                    'additionalProperties' => array(
+                        'type' => 'string',
+                        'data' => array(
+                            'shape_name' => 'String',
+                        ),
+                    ),
                 ),
             ),
             'errorResponses' => array(
@@ -798,6 +1313,26 @@ return array (
                 ),
             ),
         ),
+        'CreatePlatformApplicationResponse' => array(
+            'type' => 'object',
+            'additionalProperties' => true,
+            'properties' => array(
+                'PlatformApplicationArn' => array(
+                    'type' => 'string',
+                    'location' => 'xml',
+                ),
+            ),
+        ),
+        'CreateEndpointResponse' => array(
+            'type' => 'object',
+            'additionalProperties' => true,
+            'properties' => array(
+                'EndpointArn' => array(
+                    'type' => 'string',
+                    'location' => 'xml',
+                ),
+            ),
+        ),
         'CreateTopicResponse' => array(
             'type' => 'object',
             'additionalProperties' => true,
@@ -805,6 +1340,78 @@ return array (
                 'TopicArn' => array(
                     'type' => 'string',
                     'location' => 'xml',
+                ),
+            ),
+        ),
+        'GetEndpointAttributesResponse' => array(
+            'type' => 'object',
+            'additionalProperties' => true,
+            'properties' => array(
+                'Attributes' => array(
+                    'type' => 'array',
+                    'location' => 'xml',
+                    'filters' => array(
+                        array(
+                            'method' => 'Aws\\Common\\Command\\XmlResponseLocationVisitor::xmlMap',
+                            'args' => array(
+                                '@value',
+                                'entry',
+                                'key',
+                                'value',
+                            ),
+                        ),
+                    ),
+                    'items' => array(
+                        'name' => 'entry',
+                        'type' => 'object',
+                        'sentAs' => 'entry',
+                        'additionalProperties' => true,
+                        'properties' => array(
+                            'key' => array(
+                                'type' => 'string',
+                            ),
+                            'value' => array(
+                                'type' => 'string',
+                            ),
+                        ),
+                    ),
+                    'additionalProperties' => false,
+                ),
+            ),
+        ),
+        'GetPlatformApplicationAttributesResponse' => array(
+            'type' => 'object',
+            'additionalProperties' => true,
+            'properties' => array(
+                'Attributes' => array(
+                    'type' => 'array',
+                    'location' => 'xml',
+                    'filters' => array(
+                        array(
+                            'method' => 'Aws\\Common\\Command\\XmlResponseLocationVisitor::xmlMap',
+                            'args' => array(
+                                '@value',
+                                'entry',
+                                'key',
+                                'value',
+                            ),
+                        ),
+                    ),
+                    'items' => array(
+                        'name' => 'entry',
+                        'type' => 'object',
+                        'sentAs' => 'entry',
+                        'additionalProperties' => true,
+                        'properties' => array(
+                            'key' => array(
+                                'type' => 'string',
+                            ),
+                            'value' => array(
+                                'type' => 'string',
+                            ),
+                        ),
+                    ),
+                    'additionalProperties' => false,
                 ),
             ),
         ),
@@ -877,6 +1484,112 @@ return array (
                         ),
                     ),
                     'additionalProperties' => false,
+                ),
+            ),
+        ),
+        'ListEndpointsByPlatformApplicationResponse' => array(
+            'type' => 'object',
+            'additionalProperties' => true,
+            'properties' => array(
+                'Endpoints' => array(
+                    'type' => 'array',
+                    'location' => 'xml',
+                    'items' => array(
+                        'name' => 'Endpoint',
+                        'type' => 'object',
+                        'sentAs' => 'member',
+                        'properties' => array(
+                            'EndpointArn' => array(
+                                'type' => 'string',
+                            ),
+                            'Attributes' => array(
+                                'type' => 'array',
+                                'filters' => array(
+                                    array(
+                                        'method' => 'Aws\\Common\\Command\\XmlResponseLocationVisitor::xmlMap',
+                                        'args' => array(
+                                            '@value',
+                                            'entry',
+                                            'key',
+                                            'value',
+                                        ),
+                                    ),
+                                ),
+                                'items' => array(
+                                    'name' => 'entry',
+                                    'type' => 'object',
+                                    'sentAs' => 'entry',
+                                    'additionalProperties' => true,
+                                    'properties' => array(
+                                        'key' => array(
+                                            'type' => 'string',
+                                        ),
+                                        'value' => array(
+                                            'type' => 'string',
+                                        ),
+                                    ),
+                                ),
+                                'additionalProperties' => false,
+                            ),
+                        ),
+                    ),
+                ),
+                'NextToken' => array(
+                    'type' => 'string',
+                    'location' => 'xml',
+                ),
+            ),
+        ),
+        'ListPlatformApplicationsResponse' => array(
+            'type' => 'object',
+            'additionalProperties' => true,
+            'properties' => array(
+                'PlatformApplications' => array(
+                    'type' => 'array',
+                    'location' => 'xml',
+                    'items' => array(
+                        'name' => 'PlatformApplication',
+                        'type' => 'object',
+                        'sentAs' => 'member',
+                        'properties' => array(
+                            'PlatformApplicationArn' => array(
+                                'type' => 'string',
+                            ),
+                            'Attributes' => array(
+                                'type' => 'array',
+                                'filters' => array(
+                                    array(
+                                        'method' => 'Aws\\Common\\Command\\XmlResponseLocationVisitor::xmlMap',
+                                        'args' => array(
+                                            '@value',
+                                            'entry',
+                                            'key',
+                                            'value',
+                                        ),
+                                    ),
+                                ),
+                                'items' => array(
+                                    'name' => 'entry',
+                                    'type' => 'object',
+                                    'sentAs' => 'entry',
+                                    'additionalProperties' => true,
+                                    'properties' => array(
+                                        'key' => array(
+                                            'type' => 'string',
+                                        ),
+                                        'value' => array(
+                                            'type' => 'string',
+                                        ),
+                                    ),
+                                ),
+                                'additionalProperties' => false,
+                            ),
+                        ),
+                    ),
+                ),
+                'NextToken' => array(
+                    'type' => 'string',
+                    'location' => 'xml',
                 ),
             ),
         ),
@@ -998,22 +1711,30 @@ return array (
         ),
     ),
     'iterators' => array(
-        'operations' => array(
-            'ListSubscriptions' => array(
-                'token_param' => 'NextToken',
-                'token_key' => 'NextToken',
-                'result_key' => 'Subscriptions',
-            ),
-            'ListSubscriptionsByTopic' => array(
-                'token_param' => 'NextToken',
-                'token_key' => 'NextToken',
-                'result_key' => 'Subscriptions',
-            ),
-            'ListTopics' => array(
-                'token_param' => 'NextToken',
-                'token_key' => 'NextToken',
-                'result_key' => 'Topics/*/TopicArn',
-            ),
+        'ListEndpointsByPlatformApplication' => array(
+            'input_token' => 'NextToken',
+            'output_token' => 'NextToken',
+            'result_key' => 'Endpoints',
+        ),
+        'ListPlatformApplications' => array(
+            'input_token' => 'NextToken',
+            'output_token' => 'NextToken',
+            'result_key' => 'PlatformApplications',
+        ),
+        'ListSubscriptions' => array(
+            'input_token' => 'NextToken',
+            'output_token' => 'NextToken',
+            'result_key' => 'Subscriptions',
+        ),
+        'ListSubscriptionsByTopic' => array(
+            'input_token' => 'NextToken',
+            'output_token' => 'NextToken',
+            'result_key' => 'Subscriptions',
+        ),
+        'ListTopics' => array(
+            'input_token' => 'NextToken',
+            'output_token' => 'NextToken',
+            'result_key' => 'Topics/*/TopicArn',
         ),
     ),
 );

@@ -2,8 +2,8 @@
 Migration Guide
 ===============
 
-This guide shows how to migrate your code to use the new AWS SDK for PHP 2 and how the new SDK differs from the first
-version of the SDK.
+This guide shows how to migrate your code to use the new AWS SDK for PHP and how the new SDK differs from the
+AWS SDK for PHP - Version 1.
 
 Introduction
 ------------
@@ -22,9 +22,9 @@ is compatible with PHP 5.3.3 and newer, and follows the PSR-0 standard for names
 Which Services are Supported?
 -----------------------------
 
-The AWS SDK for PHP 2 supports all of the AWS services supported by Version 1 of the SDK and more, including Amazon
+The AWS SDK for PHP supports all of the AWS services supported by Version 1 of the SDK and more, including Amazon
 Route 53, Amazon Glacier, and AWS Direct Connect. See the `AWS SDK for PHP website <http://aws.amazon.com/sdkforphp/>`_
-for the full list of services supported by the SDK. Be sure to watch or star our `AWS SDK for PHP 2 GitHub repository
+for the full list of services supported by the SDK. Be sure to watch or star our `AWS SDK for PHP GitHub repository
 <https://github.com/aws/aws-sdk-php>`_ to stay up-to-date with the latest changes.
 
 What's New?
@@ -41,9 +41,7 @@ What's New?
 - Plug-ins for over-the-wire logging and response caching
 - "Waiter" objects that allow you to poll a resource until it is in a desired state
 - Resource iterator objects for easily iterating over paginated responses
-- Service-specific sets of exceptions
 - Modeled responses with a simpler interface
-- Grouped constants (Enums) for service parameter options
 - Flexible request batching system
 - Service builder/container that supports easy configuration and dependency injection
 - Full unit test suite with extensive code coverage
@@ -93,7 +91,7 @@ noticeable change is that all method names are now named using lower camel-case
 Required Regions
 ~~~~~~~~~~~~~~~~
 
-The `region <http://docs.amazonwebservices.com/general/latest/gr/rande.html>`_ must be provided to instantiate a client
+The `region <http://docs.aws.amazon.com/general/latest/gr/rande.html>`_ must be provided to instantiate a client
 (except in the case where the service has a single endpoint like Amazon CloudFront). The AWS region you select may
 affect both your performance and costs.
 
@@ -108,8 +106,10 @@ behavior.
 .. code-block:: php
 
     $dynamodb = Aws\DynamoDb\DynamoDbClient::factory(array(
-        'key'    => 'your-aws-access-key-id',
-        'secret' => 'your-aws-secret-access-key',
+        'credentials' => array(
+            'key'    => 'your-aws-access-key-id',
+            'secret' => 'your-aws-secret-access-key',
+        ),
         'region' => 'us-west-2',
     ));
 
@@ -450,8 +450,6 @@ From Version 2 of the SDK
     require '/path/to/vendor/autoload.php';
 
     use Aws\Common\Aws;
-    use Aws\DynamoDb\Enum\ComparisonOperator;
-    use Aws\DynamoDb\Enum\Type;
 
     $aws = Aws::factory('/path/to/config.php');
     $dynamodb = $aws->get('dynamodb');
@@ -462,9 +460,9 @@ From Version 2 of the SDK
         'AttributesToGet' => array('id', 'age', 'name'),
         'ScanFilter'      => array(
             'age' => array(
-                'ComparisonOperator' => ComparisonOperator::GE,
+                'ComparisonOperator' => 'GE',
                 'AttributeValueList' => array(
-                    array(Type::NUMBER => '16')
+                    array('N' => '16')
                 )
             ),
         )
@@ -474,7 +472,7 @@ From Version 2 of the SDK
     // that are 16 or older
     $people = array();
     foreach ($scan as $item) {
-        $people[] = $item['name'][Type::STRING];
+        $people[] = $item['name']['N'];
     }
 
     print_r($people);
